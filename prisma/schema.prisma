@@ -1,0 +1,160 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  READY_FOR_PICKUP
+  COLLECTED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_AT_STORE
+  UPI_AT_STORE
+  CARD_AT_STORE
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID_AT_STORE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  phone         String?
+  passwordHash  String?
+  role          Role      @default(CUSTOMER)
+  loyaltyPoints Int       @default(0)
+  isBlocked     Boolean   @default(false)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orders        Order[]
+  reviews       Review[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String
+  isFeatured  Boolean   @default(false)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  subtitle       String
+  description    String
+  fabricDetails  String
+  workDetails    String
+  occasion       String
+  price          Float
+  offerPrice     Float?
+  images         String[]
+  videoUrl       String?
+  categoryId     String
+  category       Category  @relation(fields: [categoryId], references: [id])
+  availableSizes String[]
+  sku            String    @unique
+  barcode        String?
+  inStock        Boolean   @default(true)
+  stockCount     Int       @default(10)
+  isFeatured     Boolean   @default(false)
+  isTrending     Boolean   @default(false)
+  isNewArrival   Boolean   @default(true)
+  isBridal       Boolean   @default(false)
+  rating         Float     @default(5.0)
+  reviewCount    Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  reviews        Review[]
+  orderItems     OrderItem[]
+}
+
+model Order {
+  id               String        @id @default(cuid())
+  orderNumber      String        @unique
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id])
+  customerName     String
+  customerPhone    String
+  customerEmail    String
+  subtotal         Float
+  discount         Float         @default(0)
+  totalAmount      Float
+  pickupDate       String
+  pickupTimeSlot   String
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus @default(UNPAID)
+  orderStatus      OrderStatus   @default(PENDING)
+  notes            String?
+  fittingRequested Boolean       @default(false)
+  qrPassCode       String        @unique
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  items            OrderItem[]
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  productName  String
+  productImage String
+  size         String
+  color        String
+  price        Float
+  quantity     Int
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id])
+  customerName     String
+  customerLocation String   @default("Mangaluru")
+  rating           Int
+  title            String
+  comment          String
+  photos           String[]
+  verifiedPurchase Boolean  @default(true)
+  isApproved       Boolean  @default(true)
+  reply            String?
+  createdAt        DateTime @default(now())
+}
+
+model Coupon {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  discountType   String   // PERCENTAGE or FIXED
+  discountValue  Float
+  minOrderAmount Float    @default(0)
+  validUntil     DateTime
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+}
